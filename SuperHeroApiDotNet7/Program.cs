@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using SuperHeroApiDotNet7.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +15,10 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+//Inject app Dependencies (Dependency Injection)
 builder.Services.AddScoped < ISuperHeroService, SuperHeroService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ----- add db
 builder.Services.AddDbContext<DataContext>();

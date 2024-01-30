@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using SuperHeroApiDotNet7.DTO;
 using SuperHeroApiDotNet7.OtherObjects;
+using SuperHeroApiDotNet7.Services;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -15,16 +17,11 @@ namespace SuperHeroApiDotNet7.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        private readonly IAuthService _authService;
 
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly IConfiguration _configuration;
-
-        public AuthController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        public AuthController(IAuthService authService)
         {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _configuration = configuration;
+            _authService = authService;
         }
 
         // Route for seeding my roles to db
@@ -32,17 +29,8 @@ namespace SuperHeroApiDotNet7.Controllers
         [Route("seed-roles")]
         public async Task<IActionResult> SeedRoles()
         {
-            bool isOwnerRoleExists = await _roleManager.RoleExistsAsync(StaticUserRoles.OWNER);
-            bool isUserRoleExists = await _roleManager.RoleExistsAsync(StaticUserRoles.USER);
-            bool isAdminRoleExists = await _roleManager.RoleExistsAsync(StaticUserRoles.ADMIN);
-            if (isAdminRoleExists && isOwnerRoleExists && isUserRoleExists)
-                return Ok("Roles Seeding is Already Done");
-
-            await _roleManager.CreateAsync(new IdentityRole(StaticUserRoles.USER));
-            await _roleManager.CreateAsync(new IdentityRole(StaticUserRoles.ADMIN));
-            await _roleManager.CreateAsync(new IdentityRole(StaticUserRoles.OWNER));
-
-            return Ok("Role Seeding done successfully");
+            var seedrole = await _authService.SeedRolesAsync();
+            return Ok(seedrole);
         }
 
         // Route -> Register
@@ -50,36 +38,37 @@ namespace SuperHeroApiDotNet7.Controllers
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            var isExistsUser = await _userManager.FindByNameAsync(registerDto.Username);
-
-            if (isExistsUser != null)
-                return BadRequest("UserName Already Exists!!");
-
-            ApplicationUser newUser = new ApplicationUser()
+            if (!ModelState.IsValid)
             {
-                FirstName = registerDto.FirstName,
-                LastName = registerDto.LastName,
-                Email = registerDto.Email,
-                UserName = registerDto.Username,
-                SecurityStamp = Guid.NewGuid().ToString(),
-            };
-
-            var createUserResult = await _userManager.CreateAsync(newUser, registerDto.Password);
-
-            if (!createUserResult.Succeeded)
-            {
-                var errorString = "User Creation failed Because: ";
-                foreach(var error in createUserResult.Errors)
+                var listErr = new Dictionary<string, string>();
+                foreach (var modelStateKey in ModelState.Keys)
                 {
-                    errorString += " # " + error.Description;
+                    var modelStateVal = ModelState[modelStateKey];
+                    //foreach (var error in modelStateVal.Errors)
+                    //{
+                    //    var key = modelStateKey;
+                    //    var errorMessage = error.ErrorMessage;
+                    //}
+                    listErr.Add(modelStateKey, modelStateVal.Errors[0].ErrorMessage);
                 }
-                return BadRequest(errorString);
+                
+                string errorMsg = "";
+                foreach(KeyValuePair<string, string> map in listErr)
+                {
+                    errorMsg += map.Key + ": " + map.Value + Environment.NewLine;
+                }
+                return BadRequest(new AuthServiceResponseDto()
+                {
+                    IsSucceed = false,
+                    Message = errorMsg
+
+                });
             }
+            var registerResult = await _authService.RegisterAsync(registerDto);
+            if (registerResult.IsSucceed)
+                return Ok(registerResult);
 
-            //Add a default USER Role to All users
-            await _userManager.AddToRoleAsync(newUser, StaticUserRoles.USER);
-
-            return Ok("user Created Successfully");
+            return BadRequest(registerResult);
         }
 
 
@@ -88,53 +77,11 @@ namespace SuperHeroApiDotNet7.Controllers
         [Route("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
-            var user = await _userManager.FindByNameAsync(loginDto.Username);
+            var loginResult = await _authService.LoginAsync(loginDto);
+            if (loginResult.IsSucceed)
+                return Ok(loginResult);
 
-            if (user is null)
-                return Unauthorized("Invalid Credentials");
-
-            var isPasswordCorrect = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-
-            if(!isPasswordCorrect)
-                return Unauthorized("Invalid Credentials");
-
-            var userRoles = await _userManager.GetRolesAsync(user);
-
-            var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim("JWTID", Guid.NewGuid().ToString()),
-                new Claim("FirstName", user.FirstName),
-                new Claim("LastName", user.LastName),
-            };
-
-            foreach(var userRole in userRoles)
-            {
-                authClaims.Add(new Claim(ClaimTypes.Role, userRole));
-            }
-
-            var token = GenerateNewJsonWebToken(authClaims);
-
-            return Ok(token);
-        }
-
-
-        private string GenerateNewJsonWebToken(List<Claim> claims)
-        {
-            var authSecret = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
-
-            var tokenObject = new JwtSecurityToken(
-
-                    issuer: _configuration["JWT:ValidIssuer"],
-                    audience: _configuration["JWT:ValidAudience"],
-                    expires: DateTime.Now.AddHours(1),
-                    claims: claims,
-                    signingCredentials: new SigningCredentials(authSecret, SecurityAlgorithms.HmacSha256)
-                );
-            string token = new JwtSecurityTokenHandler().WriteToken(tokenObject);
-
-            return token;
+            return Unauthorized(loginResult);
         }
 
 
@@ -143,14 +90,11 @@ namespace SuperHeroApiDotNet7.Controllers
         [Route("make-admin")]
         public async Task<IActionResult> MakeAdmin([FromBody] UpdatePermissionDto updatePermissionDto)
         {
-            var user = await _userManager.FindByNameAsync(updatePermissionDto.Username);
+            var makeAdminResult = await _authService.MakeAdminAsync(updatePermissionDto);
+            if (makeAdminResult.IsSucceed)
+                return Ok(makeAdminResult);
 
-            if (user is null)
-                return BadRequest("Invalid User Name!!!");
-
-            await _userManager.AddToRoleAsync(user, StaticUserRoles.ADMIN);
-
-            return Ok("User is now an Admin");
+            return BadRequest(makeAdminResult);
         }
 
         // Route -> make user -> owner
@@ -158,14 +102,11 @@ namespace SuperHeroApiDotNet7.Controllers
         [Route("make-owner")]
         public async Task<IActionResult> MakeOwner([FromBody] UpdatePermissionDto updatePermissionDto)
         {
-            var user = await _userManager.FindByNameAsync(updatePermissionDto.Username);
+            var makeOwnerResult = await _authService.MakeOwnerAsync(updatePermissionDto);
+            if (makeOwnerResult.IsSucceed)
+                return Ok(makeOwnerResult);
 
-            if (user is null)
-                return BadRequest("Invalid User Name!!!");
-
-            await _userManager.AddToRoleAsync(user, StaticUserRoles.OWNER);
-
-            return Ok("User is now an Owner");
+            return BadRequest(makeOwnerResult);
         }
 
 
