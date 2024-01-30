@@ -23,7 +23,7 @@ builder.Services.AddDbContext<DataContext>();
 
 // ----- Add identity
 builder.Services
-    .AddIdentity<IdentityUser, IdentityRole>()
+    .AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<DataContext>()
     .AddDefaultTokenProviders();
 
