@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -67,11 +68,21 @@ namespace SuperHeroApiDotNet7.Services
 
             var token = GenerateNewJsonWebToken(authClaims);
 
+            // REFRESH TOKEN
+            var refreshToken = GenerateRefreshToken();
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddMinutes(30);
+
+            await _userManager.UpdateAsync(user);
+
+            //
+
             return new AuthServiceResponseDto()
             {
                 IsSucceed = true,
-                Message = token
-
+                Message = token,
+                RefreshToken = refreshToken
             };
         }
 
@@ -83,13 +94,23 @@ namespace SuperHeroApiDotNet7.Services
 
                     issuer: _configuration["JWT:ValidIssuer"],
                     audience: _configuration["JWT:ValidAudience"],
-                    expires: DateTime.Now.AddHours(1),
+                    expires: DateTime.UtcNow.AddMinutes(1),
                     claims: claims,
                     signingCredentials: new SigningCredentials(authSecret, SecurityAlgorithms.HmacSha256)
                 );
             string token = new JwtSecurityTokenHandler().WriteToken(tokenObject);
 
             return token;
+        }
+
+        private static string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[64];
+
+            using var generator = RandomNumberGenerator.Create();
+
+            generator.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
         }
 
         /// <summary>
@@ -228,6 +249,108 @@ namespace SuperHeroApiDotNet7.Services
                 Message = "Role Seeding done successfully"
 
             }; 
+        }
+
+
+        /// <summary>
+        /// Refresh token
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public async Task<AuthServiceResponseDto> RefreshAsync(RefreshModel model)
+        {
+            var principal = GetPrincipalFromExpiredToken(model.AccessToken);
+
+            if (principal?.Identity?.Name is null)
+                return new AuthServiceResponseDto()
+                {
+                    IsSucceed = false,
+                    Message = "Unauthorized!! Identity?.Name"
+
+                };
+
+            var user = await _userManager.FindByNameAsync(principal.Identity.Name);
+            if(user is null || user.RefreshToken != model.RefreshToken || user.RefreshTokenExpiry < DateTime.UtcNow)
+                return new AuthServiceResponseDto()
+                {
+                    IsSucceed = false,
+                    Message = "Unauthorized!!" 
+
+                };
+
+            // Begin: use to get new token
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            var authClaims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim("JWTID", Guid.NewGuid().ToString()),
+                new Claim("FirstName", user.FirstName),
+                new Claim("LastName", user.LastName),
+            };
+
+            foreach (var userRole in userRoles)
+            {
+                authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+            }
+            var token = GenerateNewJsonWebToken(authClaims);
+            // End
+
+            return new AuthServiceResponseDto()
+            {
+                IsSucceed = true,
+                Message = token,
+                RefreshToken = model.RefreshToken
+
+            };
+        }
+
+
+        private ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token)
+        {
+            var secret = _configuration["JWT:Secret"] ?? throw new InvalidOperationException("Secret not configured");
+
+            var validation = new TokenValidationParameters
+            {
+                ValidIssuer = _configuration["JWT:ValidIssuer"],
+                ValidAudience = _configuration["JWT:ValidAudience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+                ValidateLifetime = false
+            };
+            return new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+        }
+
+        /// <summary>
+        /// Revoke refresh token
+        /// </summary>
+        /// <returns></returns>
+        public async Task<AuthServiceResponseDto> RevokeAsync(string username)
+        {
+            if (username is null)
+                return new AuthServiceResponseDto
+                {
+                    IsSucceed = false,
+                    Message = "username is null!!"
+                };
+
+            var user = await _userManager.FindByNameAsync(username);
+
+            if(user is null)
+                return new AuthServiceResponseDto
+                {
+                    IsSucceed = false,
+                    Message = "username is null!!"
+                };
+            user.RefreshToken = null;
+
+            await _userManager.UpdateAsync(user);
+            return new AuthServiceResponseDto
+            {
+                IsSucceed = true,
+                Message = "Revoke refresh token succeed"
+            };
+
         }
     }
 }

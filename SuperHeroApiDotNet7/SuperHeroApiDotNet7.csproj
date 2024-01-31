@@ -30,7 +30,6 @@
     <None Remove="Data\" />
     <None Remove="DTO\" />
     <None Remove="OtherObjects\" />
-    <None Remove="Config\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -39,6 +38,5 @@
     <Folder Include="Data\" />
     <Folder Include="DTO\" />
     <Folder Include="OtherObjects\" />
-    <Folder Include="Config\" />
   </ItemGroup>
 </Project>

@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SuperHeroApiDotNet7.DTO;
 using SuperHeroApiDotNet7.OtherObjects;
@@ -109,10 +110,34 @@ namespace SuperHeroApiDotNet7.Controllers
             return BadRequest(makeOwnerResult);
         }
 
+        // Refresh Token
+        [HttpPost("Refresh")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Refresh([FromBody] RefreshModel model)
+        {
+            var refreshTokenResult = await _authService.RefreshAsync(model);
+            if (refreshTokenResult.IsSucceed)
+                return Ok(refreshTokenResult);
 
+            return Unauthorized(refreshTokenResult);
+        }
 
+        // Revoke refresh token
+        [HttpDelete("Revoke")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Revoke()
+        {
+            var username = HttpContext.User.Identity?.Name;
+            var revokeResult = await _authService.RevokeAsync(username);
+            if(revokeResult.IsSucceed)
+                return Ok(revokeResult);
 
-
+            return Unauthorized(revokeResult);
+        }
 
 
 

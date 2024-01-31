@@ -10,6 +10,8 @@ namespace SuperHeroApiDotNet7.Services
         Task<AuthServiceResponseDto> LoginAsync(LoginDto loginDto);
         Task<AuthServiceResponseDto> MakeAdminAsync(UpdatePermissionDto updatePermissionDto);
         Task<AuthServiceResponseDto> MakeOwnerAsync(UpdatePermissionDto updatePermissionDto);
+        Task<AuthServiceResponseDto> RefreshAsync(RefreshModel model);
+        Task<AuthServiceResponseDto> RevokeAsync(string username);
     }
 }
 
