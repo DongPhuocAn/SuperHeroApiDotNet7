@@ -1,34 +1,44 @@
 ﻿<Properties StartupConfiguration="{770674BA-E8E9-487C-85BB-5F5D1F8CDE4F}|https">
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
-  <MultiItemStartupConfigurations />
-  <MonoDevelop.Ide.Workbench ActiveDocument="SuperHeroApiDotNet7/Models/Weapon.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="SuperHeroApiDotNet7/Services/AuthService.cs">
     <Files>
-      <File FileName="SuperHeroApiDotNet7/Program.cs" Line="34" Column="1" />
-      <File FileName="SuperHeroApiDotNet7/Data/DataContext.cs" />
-      <File FileName="SuperHeroApiDotNet7/appsettings.Development.json" />
-      <File FileName="SuperHeroApiDotNet7/Controllers/SuperHeroController.cs" />
-      <File FileName="SuperHeroApiDotNet7/Models/Weapon.cs" Line="14" Column="20" />
+      <File FileName="SuperHeroApiDotNet7/Data/DataContext.cs" Line="11" Column="4" />
+      <File FileName="SuperHeroApiDotNet7/DTO/AuthServiceResponseDto.cs" Line="4" Column="37" />
+      <File FileName="SuperHeroApiDotNet7/Services/IAuthService.cs" Line="9" Column="43" />
+      <File FileName="SuperHeroApiDotNet7/Services/AuthService.cs" Line="68" Column="43" />
+      <File FileName="SuperHeroApiDotNet7/Controllers/AuthController.cs" Line="48" Column="24" />
+      <File FileName="SuperHeroApiDotNet7/DTO/RegisterDto.cs" Line="7" Column="3" />
+      <File FileName="SuperHeroApiDotNet7/Program.cs" Line="59" Column="10" />
+      <File FileName="SuperHeroApiDotNet7/Config/AddAuthTokenHeaderParameter.cs" Line="8" Column="4" />
+      <File FileName="SuperHeroApiDotNet7/Controllers/WeatherForecastController.cs" Line="1" Column="1" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
         <State name="__root__">
           <Node name="SuperHeroApiDotNet7" expanded="True">
-            <Node name="SuperHeroApiDotNet7" expanded="True" selected="True">
-              <Node name="Dependencies" expanded="True">
-                <Node name="PackageDependencies" expanded="True">
-                  <Node name="Microsoft.AspNetCore.OpenApi" expanded="True" />
-                </Node>
-              </Node>
+            <Node name="SuperHeroApiDotNet7">
+              <Node name="Config" expanded="True" />
+              <Node name="Controllers" expanded="True" />
+              <Node name="Data" expanded="True" />
+              <Node name="DTO" expanded="True" />
+              <Node name="Migrations" expanded="True" />
               <Node name="Models" expanded="True" />
+              <Node name="OtherObjects" expanded="True" />
+              <Node name="Services">
+                <Node name="SuperHeroService" expanded="True" />
+                <Node name="AuthService.cs" selected="True" />
+              </Node>
+              <Node name="appsettings.json" expanded="True" />
             </Node>
           </Node>
         </State>
       </Pad>
     </Pads>
   </MonoDevelop.Ide.Workbench>
-  <MonoDevelop.Ide.ItemProperties.SuperHeroApiDotNet7 PreferredExecutionTarget="/Applications/Google Chrome.app" />
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.ItemProperties.SuperHeroApiDotNet7 PreferredExecutionTarget="/Applications/Google Chrome.app" />
 </Properties>
