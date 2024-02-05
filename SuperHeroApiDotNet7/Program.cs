@@ -96,6 +96,19 @@ builder.Services
     });
 
 
+//ADD CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "_myAllowSpecificOrigins",
+                      builder =>
+                      {
+                          builder.WithOrigins("http://localhost:3000")
+                                                  .AllowAnyHeader()
+                                            .AllowAnyMethod();
+                      });
+});
+
+
 
 var app = builder.Build();
 
@@ -110,6 +123,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors("_myAllowSpecificOrigins");
+
 
 app.MapControllers();
 
